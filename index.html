@@ -3,27 +3,43 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Mini Scanner Fiable</title>
+<title>Mini Scanner Colis</title>
+
+<!-- Inclusion Html5Qrcode -->
 <script src="https://unpkg.com/html5-qrcode/minified/html5-qrcode.min.js"></script>
+
 <style>
 body { font-family:Segoe UI,sans-serif; background:#000; color:#fff; text-align:center; margin:0; padding:20px; }
+h2 { margin-bottom:20px; }
 #qr-reader { width:200px; height:150px; margin:auto; border:2px solid #2563eb; border-radius:10px; }
 button { margin-top:15px; padding:8px 16px; border:none; border-radius:6px; background:#2563eb; color:#fff; font-weight:600; cursor:pointer; }
 </style>
 </head>
 <body>
-<h2>📦 Scanner</h2>
+
+<h2>📦 Scanner Colis</h2>
+
 <div id="qr-reader"></div>
 <button id="scanBtn">📷 Lancer le scan</button>
+<button id="cancelBtn">❌ Annuler</button>
 
 <script>
 const qrReaderDiv = document.getElementById('qr-reader');
 const scanBtn = document.getElementById('scanBtn');
+const cancelBtn = document.getElementById('cancelBtn');
 const targetUrl = "http://192.168.0.249/recepv4/scanner.html";
+
 let scanner = null;
 
+// Bouton annuler
+cancelBtn.onclick = async () => {
+    if(scanner){ await scanner.stop(); scanner = null; }
+    window.location.href = targetUrl;
+};
+
+// Bouton lancer scan
 scanBtn.addEventListener('click', async ()=>{
-    if(scanner) return; // déjà en cours
+    if(scanner) return; // déjà actif
 
     scanner = new Html5Qrcode("qr-reader");
 
@@ -32,12 +48,13 @@ scanBtn.addEventListener('click', async ()=>{
             { facingMode: "environment" },
             { fps: 10, qrbox: 200 },
             decodedText => {
+                // Dès qu’on détecte un code, stop et redirection
                 scanner.stop().then(()=>{
                     scanner = null;
                     window.location.href = `${targetUrl}?tracking=${encodeURIComponent(decodedText)}`;
                 });
             },
-            errorMessage => { /* ignore erreurs */ }
+            errorMessage => { /* ignorer les erreurs */ }
         );
     }catch(err){
         console.error('Erreur démarrage caméra', err);
@@ -45,5 +62,6 @@ scanBtn.addEventListener('click', async ()=>{
     }
 });
 </script>
+
 </body>
 </html>
