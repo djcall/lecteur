@@ -3,41 +3,63 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Mini Scan Colis</title>
+<title>Mini Scan Auto</title>
 <script src="https://unpkg.com/html5-qrcode/minified/html5-qrcode.min.js"></script>
 <style>
 body { font-family:Segoe UI,sans-serif; background:#000; color:#fff; text-align:center; margin:0; padding:20px; }
 h2 { margin-bottom:20px; }
-#reader { width:200px; height:150px; margin:auto; border:2px solid #2563eb; border-radius:10px; }
+#qr-reader { width:200px; height:150px; margin:auto; border:2px solid #2563eb; border-radius:10px; }
 button { margin-top:15px; padding:8px 16px; border:none; border-radius:6px; background:#2563eb; color:#fff; font-weight:600; cursor:pointer; }
 </style>
 </head>
 <body>
-<h2>📦 Mini Scanner</h2>
-<div id="reader"></div>
+<h2>📦 Scanner auto</h2>
+<div id="qr-reader"></div>
 <button id="cancelBtn">❌ Annuler</button>
 
 <script>
+const qrReaderDiv = document.getElementById('qr-reader');
+const cancelBtn = document.getElementById('cancelBtn');
 const targetUrl = "http://192.168.0.249/recepv4/scanner.html";
 
-document.getElementById("cancelBtn").onclick = () => window.location.href = targetUrl;
+let scanner = null;
 
-// on attend que tout le DOM soit chargé
-window.addEventListener("load", () => {
-    const html5QrCode = new Html5Qrcode("reader");
+// Bouton annuler
+cancelBtn.onclick = async () => {
+    if(scanner){ await scanner.stop(); scanner = null; }
+    window.location.href = targetUrl;
+};
 
-    html5QrCode.start(
-        { facingMode: "environment" }, // caméra arrière
-        { fps: 10, qrbox: { width: 200, height: 150 } },
-        decodedText => {
-            html5QrCode.stop().then(() => {
-                // redirection avec info du scan
-                window.location.href = `${targetUrl}?tracking=${encodeURIComponent(decodedText)}`;
-            });
-        },
-        errorMessage => { /* on ignore les erreurs */ }
-    ).catch(err => console.error("Impossible de démarrer la caméra :", err));
-});
+// Fonction de démarrage automatique
+async function startScanner() {
+    if(scanner) return; // déjà en cours
+
+    qrReaderDiv.style.display = 'block';
+    scanner = new Html5Qrcode("qr-reader");
+
+    try{
+        await scanner.start(
+            { facingMode: "environment" },
+            { fps: 10, qrbox: 200 },
+            decodedText => {
+                // Dès qu'on détecte le code, stop et redirige
+                scanner.stop().then(()=>{
+                    scanner = null;
+                    qrReaderDiv.style.display = 'none';
+                    window.location.href = `${targetUrl}?tracking=${encodeURIComponent(decodedText)}`;
+                });
+            },
+            errorMessage => { /* ignore erreurs bruyantes */ }
+        );
+    }catch(err){
+        console.error("Erreur démarrage caméra :", err);
+        qrReaderDiv.style.display = 'none';
+        scanner = null;
+    }
+}
+
+// Démarre le scanner dès que la page est prête
+window.addEventListener("load", startScanner);
 </script>
 </body>
 </html>
