@@ -5,17 +5,22 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Scan Colis</title>
 <script src="https://unpkg.com/html5-qrcode/minified/html5-qrcode.min.js"></script>
+<style>
+body { font-family:Segoe UI, sans-serif; text-align:center; background:#000; color:#fff; margin:0; }
+h2 { margin:20px 0; }
+#reader { width:320px; margin:auto; border:2px solid #2563eb; border-radius:10px; }
+button { margin-top:20px; padding:10px 20px; border:none; border-radius:8px; background:#2563eb; color:#fff; font-weight:600; }
+</style>
 </head>
-<body style="text-align:center;font-family:sans-serif">
-<h2>Scanner un code</h2>
-<div id="reader" style="width:320px;margin:auto"></div>
+<body>
+<h2>📦 Scanner un code-barres</h2>
+<div id="reader"></div>
+<button onclick="window.location.href=targetUrl">❌ Annuler</button>
 
-  
 <script>
-const targetUrl = "http://192.168.0.249/recepv3/scanner.html"; // ← ton URL locale
+const targetUrl = "http://192.168.0.249/recepv4/scanner.html"; // ← ton URL locale
 
 function goBack(decoded) {
-  // Redirection vers ta page avec le code dans l’URL
   window.location.href = `${targetUrl}?tracking=${encodeURIComponent(decoded)}`;
 }
 
@@ -25,7 +30,8 @@ html5QrCode.start(
   { fps: 10, qrbox: 250 },
   decodedText => {
     html5QrCode.stop().then(() => goBack(decodedText));
-  }
+  },
+  error => { /* ignorer les erreurs */ }
 );
 </script>
 </body>
