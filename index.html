@@ -3,70 +3,128 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Mini Scan Auto Forcé</title>
+<title>Mini Scanner (clic requis)</title>
 <script src="https://unpkg.com/html5-qrcode/minified/html5-qrcode.min.js"></script>
 <style>
-body { font-family:Segoe UI,sans-serif; background:#000; color:#fff; text-align:center; margin:0; padding:20px; }
-h2 { margin-bottom:20px; }
-#qr-reader { width:200px; height:150px; margin:auto; border:2px solid #2563eb; border-radius:10px; display:none; }
-button { margin-top:10px; padding:6px 12px; border:none; border-radius:6px; background:#2563eb; color:#fff; font-weight:600; cursor:pointer; }
+  :root{--accent:#2563eb;--bg:#000;--fg:#fff}
+  html,body{height:100%;margin:0;background:var(--bg);color:var(--fg);font-family:Segoe UI,Arial,sans-serif}
+  .wrap{max-width:420px;margin:30px auto;text-align:center;padding:12px}
+  h1{font-size:18px;margin:6px 0 14px}
+  #qr-reader{width:220px;height:170px;margin:0 auto;border:2px solid var(--accent);border-radius:10px;display:none;overflow:hidden}
+  .controls{display:flex;gap:8px;justify-content:center;margin-top:12px}
+  button{background:var(--accent);color:#fff;border:0;padding:8px 12px;border-radius:8px;font-weight:600;cursor:pointer}
+  button.ghost{background:transparent;border:1px solid rgba(255,255,255,.08)}
+  #status{margin-top:8px;font-size:13px;color:#ddd}
+  small.note{display:block;margin-top:10px;color:#bbb}
 </style>
 </head>
 <body>
-<h2>📦 Scanner auto forcé</h2>
-<div id="qr-reader"></div>
-<button id="cancelBtn">❌ Annuler</button>
-<button id="retryBtn" style="display:none;">🔄 Relancer caméra</button>
+<div class="wrap">
+  <h1>📦 Mini Scanner — clique pour démarrer</h1>
+
+  <div id="qr-reader" aria-hidden="true"></div>
+
+  <div class="controls">
+    <button id="startBtn">📷 Scanner</button>
+    <button id="stopBtn" class="ghost" style="display:none">⏹ Arrêter</button>
+  </div>
+
+  <div id="status">Prêt. Clique sur <strong>Scanner</strong>.</div>
+  <small class="note">Nécessite HTTPS et autorisation caméra. Préférer Chrome / Edge.</small>
+</div>
 
 <script>
-const qrReaderDiv = document.getElementById('qr-reader');
-const cancelBtn = document.getElementById('cancelBtn');
-const retryBtn = document.getElementById('retryBtn');
-const targetUrl = "http://192.168.0.249/recepv4/scanner.html";
+  const targetUrl = "http://192.168.0.249/recepv4/scanner.html"; // <-- ton serveur local
+  const readerEl = document.getElementById('qr-reader');
+  const startBtn = document.getElementById('startBtn');
+  const stopBtn = document.getElementById('stopBtn');
+  const status = document.getElementById('status');
 
-let scanner = null;
+  let scanner = null;
+  let isRunning = false;
 
-// Fonction de démarrage
-async function startScanner(){
-    if(scanner) return; // déjà actif
-    qrReaderDiv.style.display = 'block';
-    retryBtn.style.display = 'none';
+  function setStatus(text){
+    status.textContent = text;
+  }
+
+  async function startScanner(){
+    if(isRunning) return;
+    setStatus('Demande d\'accès caméra...');
+    // test getUserMedia rapide pour pouvoir afficher message précis en cas d'erreur
+    try{
+      await navigator.mediaDevices.getUserMedia({ video:true });
+    }catch(err){
+      console.error('getUserMedia failed', err);
+      setStatus('Accès caméra refusé ou indisponible. Vérifie les permissions et HTTPS.');
+      return;
+    }
+
+    readerEl.style.display = 'block';
+    startBtn.style.display = 'none';
+    stopBtn.style.display = 'inline-block';
+    setStatus('En écoute... présente un code devant la caméra');
+
     scanner = new Html5Qrcode("qr-reader");
+    isRunning = true;
 
     try{
-        await scanner.start(
-            { facingMode: "environment" },
-            { fps: 10, qrbox: 200 },
-            decodedText=>{
-                scanner.stop().then(()=>{
-                    scanner = null;
-                    qrReaderDiv.style.display='none';
-                    window.location.href = `${targetUrl}?tracking=${encodeURIComponent(decodedText)}`;
-                });
-            },
-            errorMessage => {}
-        );
+      await scanner.start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: { width: 200, height: 150 }, disableFlip: false },
+        decodedText => {
+          // code lu
+          setStatus('Code détecté — redirection...');
+          // stop propre puis redirection
+          scanner.stop().then(()=>{
+            isRunning = false;
+            readerEl.style.display = 'none';
+            startBtn.style.display = 'inline-block';
+            stopBtn.style.display = 'none';
+            // envoie au serveur local
+            window.location.href = `${targetUrl}?tracking=${encodeURIComponent(decodedText)}`;
+          }).catch(err=>{
+            console.error('Erreur stop après détection', err);
+            // tentative de redirection quand même
+            window.location.href = `${targetUrl}?tracking=${encodeURIComponent(decodedText)}`;
+          });
+        },
+        errorMessage => {
+          // erreurs bruyantes ignorées
+        }
+      );
     }catch(err){
-        console.error("Erreur démarrage caméra :", err);
-        qrReaderDiv.style.display='none';
-        retryBtn.style.display='inline-block'; // proposer un relancement
-        scanner = null;
+      console.error('Html5Qrcode start error', err);
+      setStatus('Impossible de démarrer le scanner. Voir console.');
+      readerEl.style.display = 'none';
+      startBtn.style.display = 'inline-block';
+      stopBtn.style.display = 'none';
+      isRunning = false;
     }
-}
+  }
 
-// Bouton annuler
-cancelBtn.onclick = async () => {
-    if(scanner){ await scanner.stop(); scanner=null; }
-    window.location.href = targetUrl;
-};
+  async function stopScanner(){
+    if(!isRunning || !scanner) { setStatus('Scanner arrêté'); return; }
+    setStatus('Arrêt du scanner...');
+    try{
+      await scanner.stop();
+    }catch(err){
+      console.warn('Erreur lors de l\'arrêt', err);
+    }
+    scanner.clear(); // libère le DOM interne
+    scanner = null;
+    isRunning = false;
+    readerEl.style.display = 'none';
+    startBtn.style.display = 'inline-block';
+    stopBtn.style.display = 'none';
+    setStatus('Scanner arrêté.');
+  }
 
-// Bouton relancer caméra
-retryBtn.onclick = () => startScanner();
+  startBtn.addEventListener('click', startScanner);
+  stopBtn.addEventListener('click', stopScanner);
 
-// Essayer de démarrer au load
-window.addEventListener("load", () => {
-    startScanner().catch(err => console.warn("Tentative automatique échouée, utilisateur doit cliquer pour relancer"));
-});
+  // accessibilité: démarrer aussi sur "Enter" si focus sur start
+  startBtn.addEventListener('keyup', e => { if(e.key === 'Enter') startScanner(); });
 </script>
 </body>
 </html>
+
