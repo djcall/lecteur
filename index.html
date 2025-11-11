@@ -18,24 +18,24 @@ button { margin-top:15px; padding:8px 16px; border:none; border-radius:6px; back
 <button id="cancelBtn">❌ Annuler</button>
 
 <script>
-const targetUrl = "http://192.168.0.249/recepv4/scanner.html"; // ton URL locale
+const targetUrl = "http://192.168.0.249/recepv4/scanner.html";
 
 document.getElementById("cancelBtn").onclick = () => window.location.href = targetUrl;
 
-// attendre que le DOM soit prêt
-document.addEventListener("DOMContentLoaded", () => {
+// on attend que tout le DOM soit chargé
+window.addEventListener("load", () => {
     const html5QrCode = new Html5Qrcode("reader");
 
     html5QrCode.start(
-        { facingMode: "environment" },
+        { facingMode: "environment" }, // caméra arrière
         { fps: 10, qrbox: { width: 200, height: 150 } },
         decodedText => {
             html5QrCode.stop().then(() => {
-                // redirection vers ton serveur avec info du scan
+                // redirection avec info du scan
                 window.location.href = `${targetUrl}?tracking=${encodeURIComponent(decodedText)}`;
             });
         },
-        error => { /* on ignore les erreurs */ }
+        errorMessage => { /* on ignore les erreurs */ }
     ).catch(err => console.error("Impossible de démarrer la caméra :", err));
 });
 </script>
