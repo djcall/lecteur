@@ -9,30 +9,38 @@
 body { font-family:Segoe UI, sans-serif; text-align:center; background:#000; color:#fff; margin:0; }
 h2 { margin:20px 0; }
 #reader { width:320px; margin:auto; border:2px solid #2563eb; border-radius:10px; }
-button { margin-top:20px; padding:10px 20px; border:none; border-radius:8px; background:#2563eb; color:#fff; font-weight:600; }
+button { margin-top:20px; padding:10px 20px; border:none; border-radius:8px; background:#2563eb; color:#fff; font-weight:600; cursor:pointer; }
 </style>
 </head>
 <body>
 <h2>📦 Scanner un code-barres</h2>
 <div id="reader"></div>
-<button onclick="window.location.href=targetUrl">❌ Annuler</button>
+<button id="cancelBtn">❌ Annuler</button>
 
 <script>
-const targetUrl = "http://192.168.0.249/recepv4/scanner.html"; // ← ton URL locale
+const targetUrl = "http://192.168.0.249/recepv4/scanner.html"; // URL locale
 
-function goBack(decoded) {
-  window.location.href = `${targetUrl}?tracking=${encodeURIComponent(decoded)}`;
-}
+document.getElementById("cancelBtn").onclick = () => {
+    window.location.href = targetUrl;
+};
 
-const html5QrCode = new Html5Qrcode("reader");
-html5QrCode.start(
-  { facingMode: "environment" },
-  { fps: 10, qrbox: 250 },
-  decodedText => {
-    html5QrCode.stop().then(() => goBack(decodedText));
-  },
-  error => { /* ignorer les erreurs */ }
-);
+// attendre que le DOM soit prêt avant de démarrer la caméra
+document.addEventListener("DOMContentLoaded", () => {
+    const html5QrCode = new Html5Qrcode("reader");
+    html5QrCode.start(
+        { facingMode: "environment" }, // caméra arrière
+        { fps: 10, qrbox: 250 },      // paramètres du scan
+        decodedText => {
+            html5QrCode.stop().then(() => {
+                window.location.href = `${targetUrl}?tracking=${encodeURIComponent(decodedText)}`;
+            });
+        },
+        error => { /* ignorer les erreurs */ }
+    ).catch(err => {
+        console.error("Impossible de démarrer la caméra :", err);
+    });
+});
 </script>
 </body>
 </html>
+
