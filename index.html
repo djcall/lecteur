@@ -3,44 +3,41 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Scan Colis</title>
+<title>Mini Scan Colis</title>
 <script src="https://unpkg.com/html5-qrcode/minified/html5-qrcode.min.js"></script>
 <style>
-body { font-family:Segoe UI, sans-serif; text-align:center; background:#000; color:#fff; margin:0; }
-h2 { margin:20px 0; }
-#reader { width:320px; margin:auto; border:2px solid #2563eb; border-radius:10px; }
-button { margin-top:20px; padding:10px 20px; border:none; border-radius:8px; background:#2563eb; color:#fff; font-weight:600; cursor:pointer; }
+body { font-family:Segoe UI,sans-serif; background:#000; color:#fff; text-align:center; margin:0; padding:20px; }
+h2 { margin-bottom:20px; }
+#reader { width:200px; height:150px; margin:auto; border:2px solid #2563eb; border-radius:10px; }
+button { margin-top:15px; padding:8px 16px; border:none; border-radius:6px; background:#2563eb; color:#fff; font-weight:600; cursor:pointer; }
 </style>
 </head>
 <body>
-<h2>📦 Scanner un code-barres</h2>
+<h2>📦 Mini Scanner</h2>
 <div id="reader"></div>
 <button id="cancelBtn">❌ Annuler</button>
 
 <script>
-const targetUrl = "http://192.168.0.249/recepv4/scanner.html"; // URL locale
+const targetUrl = "http://192.168.0.249/recepv4/scanner.html"; // ton URL locale
 
-document.getElementById("cancelBtn").onclick = () => {
-    window.location.href = targetUrl;
-};
+document.getElementById("cancelBtn").onclick = () => window.location.href = targetUrl;
 
-// attendre que le DOM soit prêt avant de démarrer la caméra
+// attendre que le DOM soit prêt
 document.addEventListener("DOMContentLoaded", () => {
     const html5QrCode = new Html5Qrcode("reader");
+
     html5QrCode.start(
-        { facingMode: "environment" }, // caméra arrière
-        { fps: 10, qrbox: 250 },      // paramètres du scan
+        { facingMode: "environment" },
+        { fps: 10, qrbox: { width: 200, height: 150 } },
         decodedText => {
             html5QrCode.stop().then(() => {
+                // redirection vers ton serveur avec info du scan
                 window.location.href = `${targetUrl}?tracking=${encodeURIComponent(decodedText)}`;
             });
         },
-        error => { /* ignorer les erreurs */ }
-    ).catch(err => {
-        console.error("Impossible de démarrer la caméra :", err);
-    });
+        error => { /* on ignore les erreurs */ }
+    ).catch(err => console.error("Impossible de démarrer la caméra :", err));
 });
 </script>
 </body>
 </html>
-
