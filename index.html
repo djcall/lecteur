@@ -3,16 +3,43 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Mini Scanner Colis</title>
+<title>Scanner Visuel</title>
 
-<!-- Inclusion Html5Qrcode -->
-
+<!-- Html5Qrcode -->
+<script src="https://unpkg.com/html5-qrcode"></script>
 
 <style>
-body { font-family:Segoe UI,sans-serif; background:#000; color:#fff; text-align:center; margin:0; padding:20px; }
+body {
+    font-family:Segoe UI,sans-serif;
+    background:#000;
+    color:#fff;
+    text-align:center;
+    margin:0;
+    padding:20px;
+}
 h2 { margin-bottom:20px; }
-#qr-reader { width:200px; height:150px; margin:auto; border:2px solid #2563eb; border-radius:10px; }
-button { margin-top:15px; padding:8px 16px; border:none; border-radius:6px; background:#2563eb; color:#fff; font-weight:600; cursor:pointer; }
+#qr-reader {
+    width:250px;
+    height:200px;
+    margin:auto;
+    border:2px solid #2563eb;
+    border-radius:10px;
+}
+button {
+    margin-top:15px;
+    padding:8px 16px;
+    border:none;
+    border-radius:6px;
+    background:#2563eb;
+    color:#fff;
+    font-weight:600;
+    cursor:pointer;
+}
+/* Carré vert pour le code détecté */
+.html5-qrcode-video-wrapper canvas {
+    border: 2px solid #00ff00 !important;
+    border-radius:4px;
+}
 </style>
 </head>
 <body>
@@ -31,13 +58,13 @@ const targetUrl = "http://192.168.0.249/recepv4/scanner.html";
 
 let scanner = null;
 
-// Bouton annuler
+// Annuler
 cancelBtn.onclick = async () => {
-    if(scanner){ await scanner.stop(); scanner = null; }
+    if(scanner){ await scanner.stop(); scanner=null; }
     window.location.href = targetUrl;
 };
 
-// Bouton lancer scan
+// Lancer le scan
 scanBtn.addEventListener('click', async ()=>{
     if(scanner) return; // déjà actif
 
@@ -46,9 +73,14 @@ scanBtn.addEventListener('click', async ()=>{
     try{
         await scanner.start(
             { facingMode: "environment" },
-            { fps: 10, qrbox: 200 },
+            {
+                fps: 10,
+                qrbox: 200,               // zone de scan carrée
+                showVideoPreview: true,
+                highlightScanRegion: true, // carré vert autour du code détecté
+                aspectRatio: 1.25
+            },
             decodedText => {
-                // Dès qu’on détecte un code, stop et redirection
                 scanner.stop().then(()=>{
                     scanner = null;
                     window.location.href = `${targetUrl}?tracking=${encodeURIComponent(decodedText)}`;
@@ -62,6 +94,7 @@ scanBtn.addEventListener('click', async ()=>{
     }
 });
 </script>
-<script src="https://unpkg.com/html5-qrcode"></script>
+
 </body>
 </html>
+
