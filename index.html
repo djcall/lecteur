@@ -1,18 +1,49 @@
 <!doctype html>
-<html>
+<html lang="fr">
 <head>
 <meta charset="utf-8">
-<title>Test Caméra</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mini Scanner Fiable</title>
+<script src="https://unpkg.com/html5-qrcode/minified/html5-qrcode.min.js"></script>
+<style>
+body { font-family:Segoe UI,sans-serif; background:#000; color:#fff; text-align:center; margin:0; padding:20px; }
+#qr-reader { width:200px; height:150px; margin:auto; border:2px solid #2563eb; border-radius:10px; }
+button { margin-top:15px; padding:8px 16px; border:none; border-radius:6px; background:#2563eb; color:#fff; font-weight:600; cursor:pointer; }
+</style>
 </head>
 <body>
-<h2>Test caméra</h2>
-<video id="cam" autoplay playsinline width="320" height="240" style="border:2px solid blue;"></video>
+<h2>📦 Scanner</h2>
+<div id="qr-reader"></div>
+<button id="scanBtn">📷 Lancer le scan</button>
+
 <script>
-navigator.mediaDevices.getUserMedia({ video: true })
-  .then(stream => {
-    document.getElementById('cam').srcObject = stream;
-  })
-  .catch(err => console.error("Erreur caméra :", err));
+const qrReaderDiv = document.getElementById('qr-reader');
+const scanBtn = document.getElementById('scanBtn');
+const targetUrl = "http://192.168.0.249/recepv4/scanner.html";
+let scanner = null;
+
+scanBtn.addEventListener('click', async ()=>{
+    if(scanner) return; // déjà en cours
+
+    scanner = new Html5Qrcode("qr-reader");
+
+    try{
+        await scanner.start(
+            { facingMode: "environment" },
+            { fps: 10, qrbox: 200 },
+            decodedText => {
+                scanner.stop().then(()=>{
+                    scanner = null;
+                    window.location.href = `${targetUrl}?tracking=${encodeURIComponent(decodedText)}`;
+                });
+            },
+            errorMessage => { /* ignore erreurs */ }
+        );
+    }catch(err){
+        console.error('Erreur démarrage caméra', err);
+        scanner = null;
+    }
+});
 </script>
 </body>
 </html>
